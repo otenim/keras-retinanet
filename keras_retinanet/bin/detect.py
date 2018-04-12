@@ -63,31 +63,28 @@ def main(args):
     _, _, boxes, nms_classification = model.predict_on_batch(input_img)
     num_detected_boxes = len(boxes[0, :, :])
 
-    # measure prediction time
-    if args.measure_predtime:
-        times = []
-        for i in range(100):
-            stime = time.time()
-            model.prediction_on_batch(input_img)
-            etime = time.time()
-            times.append(etime - stime)
-        print('mean prediction time: %f [sec]' % np.mean(times))
+    # measure prediction time (if necessary)
+    times = []
+    for _ in range(100 if args.measure_predtime else 1):
+        stime = time.time()
+        # visualize
+        for i in range(num_detected_boxes):
+            label = np.argmax(nms_classification[0, i, :])
+            score = nms_classification[0, i, label]
+            if score < args.score_threshold:
+                continue
 
-    # visualize
-    for i in range(num_detected_boxes):
-        label = np.argmax(nms_classification[0, i, :])
-        score = nms_classification[0, i, label]
-        if score < args.score_threshold:
-            continue
+            # draw bounding box on a copy of the original input image
+            color = label_color(label)
+            coord = boxes[0,i,:] / scale
+            draw_box(output_img, coord,color=color)
 
-        # draw bounding box on a copy of the original input image
-        color = label_color(label)
-        coord = boxes[0,i,:] / scale
-        draw_box(output_img, coord,color=color)
-
-        # draw caption for the above box
-        caption = '%s %.3f' % (labelmap[label], score)
-        draw_caption(output_img, coord, caption=caption)
+            # draw caption for the above box
+            caption = '%s %.3f' % (labelmap[label], score)
+            draw_caption(output_img, coord, caption=caption)
+        etime = time.time()
+        times.append(etime - stime)
+    print('median prediction time: %f [sec]' % np.median(times))
 
     # save output image
     cv2.imwrite(os.path.expanduser(args.output_img), output_img)
