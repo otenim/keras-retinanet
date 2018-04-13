@@ -34,7 +34,7 @@ def main(args):
     # Load pretrained model
     # ==========================================
     model = keras.models.load_model(os.path.expanduser(args.model), custom_objects=custom_objects)
-    labelmap = load_classes(os.path.expanduser(args.labelmap))
+    classes = load_classes(os.path.expanduser(args.classes))
 
     # ==========================================
     # Detect bounding boxes
@@ -53,18 +53,18 @@ def main(args):
 
     # visualize
     for i in range(num_detected_boxes):
-        label = np.argmax(nms_classification[0, i, :])
-        score = nms_classification[0, i, label]
+        class_id = np.argmax(nms_classification[0, i, :])
+        score = nms_classification[0, i, class_id]
         if score < args.score_threshold:
             continue
 
         # draw bounding box on a copy of the original input image
-        color = label_color(label)
+        color = label_color(class_id)
         coord = boxes[0,i,:] / scale
         draw_box(output_img, coord,color=color)
 
         # draw caption for the above box
-        caption = '%s %.3f' % (labelmap[label], score)
+        caption = '%s %.3f' % (classes[class_id], score)
         draw_caption(output_img, coord, caption=caption)
 
     # save output image
